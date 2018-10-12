@@ -1,4 +1,4 @@
-# spark-cassandra-kafka-env
+# Spark Cassandra Kafka Environment Setup
 Contains ```docker-compose.yml``` file to creates development environment for the project which includes working with
 Spark, Cassandra and Kafka.
 
