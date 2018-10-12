@@ -1,0 +1,91 @@
+version: "3"
+
+services:
+
+    zookeeper:
+        image: zookeeper:latest
+        container_name: zookeeper
+        hostname: zookeeper
+        ports:
+            - "2181:2181"
+        networks:
+            - spark-network
+      
+    kafka:
+        image: wurstmeister/kafka:latest
+        container_name: kafka
+        hostname: kafka
+        ports:
+            - "9092:9092"
+        links: 
+            - zookeeper
+        environment:
+            - KAFKA_MESSAGE_MAX_BYTES=2000000
+            - KAFKA_ADVERTISED_HOST_NAME=kafka
+            - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181 
+            #hostname:port
+            - KAFKA_ADVERTISED_PORT=9092
+            #1 partition,1 replica and cleanup.policy set to compact(give comma seperated topic list)
+            - KAFKA_CREATE_TOPICS="Topic1:1:1:compact"
+        networks:
+            - spark-network
+            
+    cassandra:
+        image: cassandra:latest
+        container_name: cassandra
+        hostname: cassandra
+        ports:
+            - "9042:9042"
+        #enable volumes to persist data outside the containers
+        #volumes:
+        #    - ./datadir:/var/lib/cassandra
+        networks:
+            - spark-network
+            
+    spark-master:
+        image: bde2020/spark-master:latest
+        container_name: spark-master
+        hostname: spark-master
+        ports:
+            - "8080:8080"
+            - "7077:7077"
+            - "6066:6066"
+        links:
+            - "cassandra"
+            - "kafka"
+        networks:
+            - spark-network
+            
+    spark-worker1:
+        image: bde2020/spark-worker:latest
+        container_name: spark-worker1
+        environment:
+            - SPARK_MASTER=spark://spark-master:7077
+        ports:
+            - "8081:8081"
+        links:
+            - "cassandra"
+            - "kafka"
+            - "spark-master"
+        networks:
+            - spark-network
+    
+    spark-worker2:
+        image: bde2020/spark-worker:latest
+        container_name: spark-worker2
+        environment:
+            - SPARK_MASTER=spark://spark-master:7077
+        ports:
+            - "8082:8081"
+        links:
+            - "cassandra"
+            - "kafka"
+            - "spark-master"
+        networks:
+            - spark-network
+            
+networks:
+  spark-network:
+    driver: bridge
+    
+    
